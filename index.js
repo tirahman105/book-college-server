@@ -125,6 +125,7 @@ async function run() {
     const usersCollection = client.db("collegeDB").collection("users");
     const collegeCollection = client.db('collegeDB').collection('collegeCollection');
     const admissionCollection = client.db('collegeDB').collection('admission');
+    const reviewCollection = client.db('collegeDB').collection('reviews');
 
     app.post('/users', async (req, res) => {
       const user = req.body;
@@ -161,10 +162,45 @@ async function run() {
       res.send(result);
     });
 
+    // app.patch('/colleges/:id', async (req, res) => {
+     
+    //   const review= req.body.downloadLink;
+      
+    //   const id = req.params.id;
+    //   console.log(id);
+    //   const filter = { _id: new ObjectId(id) };
+    //   const updateDoc = {
+    //     $set: {
+          
+    //       review: review,
+    //     },
+    //   };
+
+    //   const result = await collegeCollection.updateOne(filter, updateDoc);
+    //   res.send(result);
+
+    // })
+
+
     app.get('/colleges/details/:id', async (req, res) => {
       const id = req.params.id;
       try {
         const query = { _id: new ObjectId(id) };
+        const result = await collegeCollection.findOne(query);
+        if (!result) {
+          return res.status(404).send({ message: 'College not found' });
+        }
+        res.send(result);
+      } catch (error) {
+        console.error('Error fetching college data:', error);
+        res.status(500).send({ message: 'Internal server error' });
+      }
+    });
+
+    app.get('/colleges/details/name/:name', async (req, res) => {
+      const name = req.params.name;
+      try {
+        const query = { name: name };
         const result = await collegeCollection.findOne(query);
         if (!result) {
           return res.status(404).send({ message: 'College not found' });
@@ -183,6 +219,32 @@ async function run() {
       const result = await admissionCollection.insertOne(admission);
       res.send(result);
   })
+
+  app.get('/admission', async(req, res) => {
+    console.log(req.query.email);
+    let query = {};
+    if(req.query?.email){
+      query = {email: req.query.email}
+    }
+    const result = await admissionCollection.find(query).sort({createdAt: -1}).toArray();
+    res.send(result)
+  })
+
+
+  app.post('/reviews', async(req, res) => {
+    const review =req.body;
+    review.createdAt = new Date();
+    console.log('new review', review);
+    const result = await reviewCollection.insertOne(review);
+    res.send(result);
+})
+
+
+app.get('/reviews', async (req, res) => {
+  const cursor = reviewCollection.find();
+  const result = await cursor.toArray();
+  res.send(result);
+});
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
